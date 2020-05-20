@@ -4,8 +4,8 @@ module.exports = {
     config
       .plugin('html')
       .tap(args => {
-        args[0].title = '你想设置的title名字'
-        return args
-      })
+        args[0].title = '黄鹤雅集';
+        return args;
+      });
   }
-}
+};
