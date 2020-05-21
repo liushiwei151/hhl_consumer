@@ -1,5 +1,5 @@
 <template>
-  <div class="home">
+  <div class="home" ref="Width">
     <div class="box" :style="{ height: height + 'px', paddingTop: height * 0.15 + 'px' }">
       <ul>
         <li>
@@ -45,15 +45,15 @@
         </li>
         <li :style="{ marginTop: height * 0.025 + 'px' }">
           <label>收获地址:</label>
-          <div class="triangleParent">
+          <div class="triangleParent" @click="getCity()">
             <input type="text" placeholder="省:" readonly="true" v-model="userInfo.province" />
             <i class="bottomTriangle"></i>
           </div>
-          <div class="triangleParent">
+          <div class="triangleParent" @click="getCity()">
             <input type="text" placeholder="市:" readonly="true" v-model="userInfo.city" />
             <i class="bottomTriangle"></i>
           </div>
-          <div class="triangleParent">
+          <div class="triangleParent" @click="getCity()">
             <input type="text" placeholder="区:" readonly="true" v-model="userInfo.area" />
             <i class="bottomTriangle"></i>
           </div>
@@ -61,6 +61,44 @@
         <li><textarea :style="{ height: height * 0.1 + 'px' }" placeholder="详细地址:" /></li>
       </ul>
       <button @click="sendUserInfo" class="send" :style="{ height: height * 0.09 + 'px' }"></button>
+      <div class="calendarMask" v-show="isCalendarShow">
+        <div class="calendar">
+          <div class="title">
+            <span @click="closeCalendar">取消</span>
+            <span @click="computed">完成</span>
+          </div>
+          <div class="body">
+            <div id="wrapper" class="body-month">
+              <ul>
+                <li></li>
+                <li></li>
+                <li v-for="(item, index) in cityData.province" :key="index">{{ item }}</li>
+                <li></li>
+                <li></li>
+              </ul>
+            </div>
+            <div id="wrapper1" class="body-month">
+              <ul>
+                <li></li>
+                <li></li>
+                <li v-for="(item, index) in cityData.city" :key="index">{{ item }}</li>
+                <li></li>
+                <li></li>
+              </ul>
+            </div>
+            <div id="wrapper2" class="body-month">
+              <ul>
+                <li></li>
+                <li></li>
+                <li v-for="(item, index) in cityData.area" :key="index">{{ item }}</li>
+                <li></li>
+                <li></li>
+              </ul>
+            </div>
+            <div class="xian"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -68,6 +106,9 @@
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator';
 import dropDownBox from '../components/dropDownBox.vue';
+import Iscroll from 'iscroll/build/iscroll';
+import city from '../components/city.data.js';
+
 interface UserInfoConstraint {
   userNum: string;
   mannagerNum: string;
@@ -83,6 +124,19 @@ interface UserInfoConstraint {
   area: string;
   address?: string;
 }
+
+interface CityDatas {
+  province: Array<string>;
+  city: Array<string>;
+  area: Array<string>;
+}
+
+interface Save {
+  province: string;
+  city: string;
+  area: string;
+}
+
 @Component({
   components: {
     dropDownBox
@@ -93,6 +147,29 @@ export default class Home extends Vue {
   msg1: Array<string> = ['80元以上/盒', '50-80元/盒', '40-50元/盒', '30-40元/盒', '20-30元/盒', '20元以下/盒'];
   msg2: Array<string> = ['0.5盒/天', '1盒/天', '2盒/天', '2盒以上/天'];
   isShowDrop = '';
+  isCalendarShow = false;
+  // 日历获取的值的下标
+  calendarNum: number | null = null;
+  calendarNum1: number | null = null;
+  calendarNum2: number | null = null;
+  // 存储的下标
+  calendarNums: number | null = null;
+  calendarNums1: number | null = null;
+  calendarNums2: number | null = null;
+  // 临时存储的省市区值
+  linshi: Save = {
+    province: '',
+    city: '',
+    area: ''
+  };
+
+  // 显示的省市区内容
+  cityData: CityDatas = {
+    province: [],
+    city: [],
+    area: []
+  };
+
   userInfo: UserInfoConstraint = {
     userNum: '',
     mannagerNum: '',
@@ -103,11 +180,15 @@ export default class Home extends Vue {
     work: '',
     smokePrice: '',
     smokeNum: '',
-    province: '',
+    province: '湖北省',
     city: '',
     area: '',
     address: ''
   };
+
+  iscroll: any = null;
+  iscroll1: any = null;
+  iscroll2: any = null;
 
   created(): void {
     this.height = document.documentElement.clientHeight;
@@ -116,13 +197,160 @@ export default class Home extends Vue {
   mounted(): void {
     const self = this;
     window.onresize = () => {
-      console.log(self.height);
       setTimeout(() => {
         if (document.activeElement != null) {
           document.activeElement.scrollIntoViewIfNeeded();
         }
       }, 0);
     };
+  }
+
+  // 给省市区分别赋值
+  getCity(e) {
+    let b, c, x, y, z;
+    if (!e) {
+      this.linshi = {
+        province: this.userInfo.province,
+        city: this.userInfo.city,
+        area: this.userInfo.area
+      };
+    }
+    console.log(this.linshi.province);
+    const a = Object.keys(city).map(res => {
+      return res;
+    });
+    if (this.linshi.province === '') {
+      b = Object.keys(city[a[0]][0]).map(res => {
+        return res;
+      });
+      c = city[a[0]][0][b[0]];
+      x = 0;
+      y = 0;
+      z = 0;
+    } else {
+      b = Object.keys(city[this.linshi.province][0]).map(res => {
+        return res;
+      });
+      x = a.indexOf(this.linshi.province);
+      if (this.linshi.city === '') {
+        c = city[this.linshi.province][0][b[0]];
+        y = 0;
+      } else {
+        c = city[this.linshi.province][0][this.linshi.city];
+        y = b.indexOf(this.linshi.city);
+      }
+    }
+    if (this.linshi.area === '') {
+      z = 0;
+    } else {
+      z = c.indexOf(this.linshi.area);
+    }
+    // 改变省清空市区 改变市清空区 除此以外全部根据当前表格是否有值判断位置
+    // 全无值 省有值市区无值 省市有值区无值 省市区有值
+    this.cityData = {
+      province: a,
+      city: b,
+      area: c
+    };
+    this.xb(x, y, z);
+    this.showCalendar(e);
+  }
+
+  // 确定省市区下标
+  xb(e: number, f: number, g: number) {
+    this.calendarNum = e;
+    this.calendarNum1 = f;
+    this.calendarNum2 = g;
+  }
+
+  // 销毁并关闭日历
+  closeCalendar() {
+    const self = this;
+    document.removeEventListener('touchmove', self.prev, { passive: false });
+    this.isCalendarShow = false;
+    this.iscroll.destroy();
+    this.linshi = {
+      province: '',
+      city: '',
+      area: ''
+    };
+  }
+
+  // 确认省市区
+  computed() {
+    this.userInfo.province = this.cityData.province[this.calendarNum];
+    this.userInfo.city = this.cityData.city[this.calendarNum1];
+    this.userInfo.area = this.cityData.area[this.calendarNum2];
+    this.closeCalendar();
+  }
+
+  // 显示日历
+  showCalendar(e) {
+    const self = this;
+    this.isCalendarShow = true;
+    setTimeout(() => {
+      self.initCalendar(e);
+    }, 0);
+  }
+
+  prev(ev) {
+    ev.preventDefault();
+  }
+
+  // 初始化日历
+  initCalendar(e) {
+    const self = this;
+    // 阻止浏览器的默认行为
+    document.addEventListener('touchmove', self.prev, { passive: false });
+    const wrapper = document.getElementById('wrapper');
+    self.iscroll = new Iscroll('#wrapper', {
+      snap: 'li'
+    });
+    const wrapper1 = document.getElementById('wrapper1');
+    self.iscroll1 = new Iscroll('#wrapper1', {
+      snap: 'li'
+    });
+    const wrapper2 = document.getElementById('wrapper2');
+    self.iscroll2 = new Iscroll('#wrapper2', {
+      snap: 'li'
+    });
+    const width = self.$refs.Width.offsetWidth * 0.1;
+    // 根据calendarNum下标确定iscroll的初始位置
+    if (e) {
+      if (e === 1) {
+        self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 500);
+        self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
+        console.log(1);
+      } else if (e === 2) {
+        self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
+        console.log(2);
+      }
+    } else {
+      self.iscroll.scrollTo(0, -(self.calendarNum * width), 500);
+      self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 500);
+      self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
+      console.log(3);
+    }
+
+    // 表一停止后更新下标
+    self.iscroll.on('scrollEnd', function() {
+      self.calendarNum = Math.round(-this.y / width);
+      self.linshi.province = self.cityData.province[self.calendarNum];
+      self.linshi.city = '';
+      self.linshi.area = '';
+      self.getCity(1);
+    });
+    self.iscroll1.on('scrollEnd', function() {
+      self.calendarNum1 = Math.round(-this.y / width);
+      self.linshi.city = self.cityData.city[self.calendarNum1];
+      self.linshi.area = '';
+      self.getCity(2);
+    });
+    self.iscroll2.on('scrollEnd', function() {
+      self.calendarNum2 = Math.round(-this.y / width);
+      self.linshi.area = self.cityData.area[self.calendarNum2];
+      self.getCity(3);
+    });
   }
 
   onDropDownBox(e: string) {
@@ -158,6 +386,68 @@ export default class Home extends Vue {
 }
 </script>
 <style scoped lang="less">
+//日历样式
+.calendarMask {
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 98;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  font-size: 4vw;
+  top: 0;
+  left: 0;
+  .calendar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    .title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #fff;
+      padding: 4vw;
+      color: #418fe0;
+    }
+    .body {
+      background-color: #d2d6db;
+      display: flex;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      height: 50vw;
+      .xian {
+        height: 10vw;
+        width: 100%;
+        position: absolute;
+        border-top: solid 1px black;
+        border-bottom: solid 1px black;
+        box-sizing: border-box;
+        position: absolute;
+        pointer-events: none;
+        top: 20vw;
+      }
+      .body-month {
+        // height: 350px;
+        width: 100%;
+        // display: flex;
+        // justify-content: space-between;
+      }
+      ul {
+        // flex: 1;
+        width: 33.3vw;
+        padding: 0 2vw;
+        box-sizing: border-box;
+        display: inline-block;
+        li {
+          height: 10vw;
+          line-height: 10vw;
+          margin: 0;
+        }
+      }
+    }
+  }
+}
 .home {
   width: 100%;
   height: 100%;
