@@ -1,45 +1,47 @@
 <template>
   <div class="home" ref="Width">
+    <!-- 再次进入时页面 -->
+    <showImg imgName='passing' v-if='userInformation&&userInformation.status=== 0'></showImg>
+    <showImg imgName='pass' v-if='userInformation&&userInformation.status=== 1'></showImg>
+    <showImg imgName='noPass' v-if='userInformation&&userInformation.status=== -1' @result="resultWord"></showImg>
+    <!-- 默认页面 -->
     <div class="box" :style="{ height: height + 'px', paddingTop: height * 0.15 + 'px' }">
       <ul>
         <li>
-          <div><input type="text" placeholder="用户编号:" v-model="userInfo.userNum" /></div>
-          <div><input type="text" placeholder="销区经理用户编号:" v-model="userInfo.mannagerNum" /></div>
+          <div><input type="text" placeholder="用户编号:" v-model="userInfo.memberNo" readonly="true" /></div>
+          <div><input type="text" placeholder="销区经理用户编号:" v-model="userInfo.salesMemberNo" /></div>
         </li>
         <li :style="{ marginTop: height * 0.025 + 'px' }">
-          <div class="w100"><input type="text" placeholder="姓名:" v-model="userInfo.name" /></div>
+          <div class="w100"><input type="text" placeholder="姓名:" v-model="userInfo.realName" /></div>
         </li>
         <li>
-          <div class="w100"><input type="tel" placeholder="手机号码:" v-model="userInfo.phoneNum" /></div>
+          <div class="w100"><input type="tel" placeholder="手机号码:" v-model="userInfo.phone" /></div>
         </li>
         <li>
-          <div><input type="text" placeholder="性别:" v-model="userInfo.sex" /></div>
+          <div>
+            <div style="height: 100%;position: relative;" @click="onDropDownBox('sex')">
+              <input type="text" placeholder="性别:" @blur="dropBlur('sex')" v-model="userInfo.gender" readonly="true" />
+              <i :class="[isShowDrop === 'sex' ? 'topTriangle' : 'bottomTriangle']"></i>
+            </div>
+            <dropDownBox style="width: 26vw;" :msg="msg3" v-show="isShowDrop === 'sex'" @bindSend="assignment"></dropDownBox>
+          </div>
           <div><input type="number" placeholder="年龄:" v-model="userInfo.age" /></div>
-          <div><input type="text" placeholder="职业:" v-model="userInfo.work" /></div>
+          <div><input type="text" placeholder="职业:" v-model="userInfo.job" /></div>
         </li>
         <li>
           <div class="triangleParent">
-            <input
-              type="text"
-              placeholder="抽烟价位:"
-              readonly="true"
-              @click="onDropDownBox('price')"
-              @blur="dropBlur"
-              v-model="userInfo.smokePrice"
-            />
-            <i :class="[isShowDrop === 'price' ? 'topTriangle' : 'bottomTriangle']"></i>
+            <div class="inputBox" @click="onDropDownBox('price')">
+              <input type="text" placeholder="抽烟价位:" readonly="true" @blur="dropBlur('price')" v-model="userInfo.smokingPrice" />
+              <i :class="[isShowDrop === 'price' ? 'topTriangle' : 'bottomTriangle']"></i>
+            </div>
             <dropDownBox :msg="msg1" v-show="isShowDrop === 'price'" @bindSend="assignment"></dropDownBox>
           </div>
           <div class="triangleParent">
-            <input
-              type="text"
-              placeholder="一个月抽烟量:"
-              readonly="true"
-              @click="onDropDownBox('weight')"
-              @blur="dropBlur"
-              v-model="userInfo.smokeNum"
-            />
-            <i :class="[isShowDrop === 'weight' ? 'topTriangle' : 'bottomTriangle']"></i>
+            <div class="inputBox" @click="onDropDownBox('weight')">
+              <input type="text" placeholder="一个月抽烟量:" readonly="true" @blur="dropBlur('weight')" v-model="userInfo.smokingVolume" />
+              <i :class="[isShowDrop === 'weight' ? 'topTriangle' : 'bottomTriangle']"></i>
+            </div>
+
             <dropDownBox :msg="msg2" v-show="isShowDrop === 'weight'" @bindSend="assignment"></dropDownBox>
           </div>
         </li>
@@ -47,18 +49,18 @@
           <label>收获地址:</label>
           <div class="triangleParent" @click="getCity()">
             <input type="text" placeholder="省:" readonly="true" v-model="userInfo.province" />
-            <i class="bottomTriangle"></i>
+            <i :class="[isCalendarShow ? 'topTriangle' : 'bottomTriangle']"></i>
           </div>
           <div class="triangleParent" @click="getCity()">
             <input type="text" placeholder="市:" readonly="true" v-model="userInfo.city" />
-            <i class="bottomTriangle"></i>
+            <i :class="[isCalendarShow ? 'topTriangle' : 'bottomTriangle']"></i>
           </div>
           <div class="triangleParent" @click="getCity()">
             <input type="text" placeholder="区:" readonly="true" v-model="userInfo.area" />
-            <i class="bottomTriangle"></i>
+            <i :class="[isCalendarShow ? 'topTriangle' : 'bottomTriangle']"></i>
           </div>
         </li>
-        <li><textarea :style="{ height: height * 0.1 + 'px' }" placeholder="详细地址:" /></li>
+        <li><textarea :style="{ height: height * 0.1 + 'px' }" placeholder="详细地址:" v-model="userInfo.street" /></li>
       </ul>
       <button @click="sendUserInfo" class="send" :style="{ height: height * 0.09 + 'px' }"></button>
       <div class="calendarMask" v-show="isCalendarShow">
@@ -106,23 +108,25 @@
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator';
 import dropDownBox from '../components/dropDownBox.vue';
+import showImg from '../components/showImg.vue';
 import Iscroll from 'iscroll/build/iscroll';
 import city from '../components/city.data.js';
+import api from '../api.js';
 
 interface UserInfoConstraint {
-  userNum: string;
-  mannagerNum: string;
-  name: string;
-  phoneNum: number | string;
-  sex: string;
+  memberNo: string;
+  salesMemberNo: string;
+  realName: string;
+  phone: number | string;
+  gender: string;
   age: number | string;
-  work: string;
-  smokePrice: string;
-  smokeNum: string;
+  job: string;
+  smokingPrice: string;
+  smokingVolume: string;
   province: string;
   city: string;
   area: string;
-  address?: string;
+  street?: string;
 }
 
 interface CityDatas {
@@ -139,13 +143,15 @@ interface Save {
 
 @Component({
   components: {
-    dropDownBox
+    dropDownBox,
+    showImg
   }
 })
 export default class Home extends Vue {
   height = 0;
   msg1: Array<string> = ['80元以上/盒', '50-80元/盒', '40-50元/盒', '30-40元/盒', '20-30元/盒', '20元以下/盒'];
   msg2: Array<string> = ['0.5盒/天', '1盒/天', '2盒/天', '2盒以上/天'];
+  msg3: Array<string> = ['男', '女'];
   isShowDrop = '';
   isCalendarShow = false;
   // 日历获取的值的下标
@@ -156,6 +162,9 @@ export default class Home extends Vue {
   calendarNums: number | null = null;
   calendarNums1: number | null = null;
   calendarNums2: number | null = null;
+  initData: Array<any> = [];
+  // 客户状态，为null说明第一次进入
+  userInformation: any = null;
   // 临时存储的省市区值
   linshi: Save = {
     province: '',
@@ -171,19 +180,19 @@ export default class Home extends Vue {
   };
 
   userInfo: UserInfoConstraint = {
-    userNum: '',
-    mannagerNum: '',
-    name: '',
-    phoneNum: '',
-    sex: '',
+    memberNo: '',
+    salesMemberNo: '',
+    realName: '',
+    phone: '',
+    gender: '',
     age: '',
-    work: '',
-    smokePrice: '',
-    smokeNum: '',
-    province: '湖北省',
+    job: '',
+    smokingPrice: '',
+    smokingVolume: '',
+    province: '',
     city: '',
     area: '',
-    address: ''
+    street: ''
   };
 
   iscroll: any = null;
@@ -192,10 +201,13 @@ export default class Home extends Vue {
 
   created(): void {
     this.height = document.documentElement.clientHeight;
+    this.slice('http://qrhhl.yunyutian.cn/consumer/index.html?openid=oXslc0zEvV5RwspCzgWcQMmL-_yA&customerId=0000003#/');
+    // this.slice(location.href);//todo
   }
 
   mounted(): void {
     const self = this;
+    // 弹出输入框时自动定位
     window.onresize = () => {
       setTimeout(() => {
         if (document.activeElement != null) {
@@ -205,9 +217,36 @@ export default class Home extends Vue {
     };
   }
 
+  //截取url
+  slice(url) {
+    for (let i = 0; i < url.slice(44, -2).split('&').length; i++) {
+      this.initData.push(
+        url
+          .slice(44, -2)
+          .split('&')
+          [i].split('=')[1]
+      );
+    }
+    this.userInfo.memberNo = this.initData[1];
+    this.getConsumer(this.initData[1]);
+  }
+
+  getConsumer(e) {
+    const self = this;
+    api.consumer(e).then(res => {
+      if (res.data.code === 200) {
+        localStorage.setItem('token', JSON.stringify(res.data.data.token));
+        self.userInformation = res.data.data.consumerUser;
+      } else {
+        self.$layer.msg(res.data.msg);
+      }
+    });
+  }
+
   // 给省市区分别赋值
-  getCity(e) {
+  getCity(e: number | string) {
     let b, c, x, y, z;
+    const self = this;
     if (!e) {
       this.linshi = {
         province: this.userInfo.province,
@@ -215,7 +254,7 @@ export default class Home extends Vue {
         area: this.userInfo.area
       };
     }
-    console.log(this.linshi.province);
+
     const a = Object.keys(city).map(res => {
       return res;
     });
@@ -225,7 +264,11 @@ export default class Home extends Vue {
       });
       c = city[a[0]][0][b[0]];
       x = 0;
-      y = 0;
+      if (b.indexOf(this.linshi.city) < 0) {
+        y = 0;
+      } else {
+        y = b.indexOf(this.linshi.city);
+      }
       z = 0;
     } else {
       b = Object.keys(city[this.linshi.province][0]).map(res => {
@@ -252,15 +295,23 @@ export default class Home extends Vue {
       city: b,
       area: c
     };
-    this.xb(x, y, z);
-    this.showCalendar(e);
+    if (!e) {
+      this.showCalendar(e);
+    }
+    setTimeout(() => {
+      self.xb(x, y, z);
+    });
   }
 
   // 确定省市区下标
   xb(e: number, f: number, g: number) {
+    const width = this.$refs.Width.offsetWidth * 0.1;
     this.calendarNum = e;
     this.calendarNum1 = f;
     this.calendarNum2 = g;
+    this.iscroll.scrollTo(0, -(this.calendarNum * width), 500);
+    this.iscroll1.scrollTo(0, -(this.calendarNum1 * width), 500);
+    this.iscroll2.scrollTo(0, -(this.calendarNum2 * width), 500);
   }
 
   // 销毁并关闭日历
@@ -269,6 +320,11 @@ export default class Home extends Vue {
     document.removeEventListener('touchmove', self.prev, { passive: false });
     this.isCalendarShow = false;
     this.iscroll.destroy();
+    this.iscroll1.destroy();
+    this.iscroll2.destroy();
+    this.iscroll = null;
+    this.iscroll1 = null;
+    this.iscroll2 = null;
     this.linshi = {
       province: '',
       city: '',
@@ -285,52 +341,81 @@ export default class Home extends Vue {
   }
 
   // 显示日历
-  showCalendar(e) {
+  showCalendar() {
     const self = this;
     this.isCalendarShow = true;
     setTimeout(() => {
-      self.initCalendar(e);
+      self.initCalendar();
     }, 0);
   }
 
-  prev(ev) {
+  prev(ev: any) {
     ev.preventDefault();
   }
 
+  //重新开始填写
+  resultWord(){
+    this.userInfo = {
+      memberNo: this.initData[1],
+      salesMemberNo: '',
+      realName: '',
+      phone: '',
+      gender: '',
+      age: '',
+      job: '',
+      smokingPrice: '',
+      smokingVolume: '',
+      province: '',
+      city: '',
+      area: '',
+      street: ''
+    };
+    this.userInformation.status = '';
+  }
+
   // 初始化日历
-  initCalendar(e) {
+  initCalendar() {
     const self = this;
     // 阻止浏览器的默认行为
     document.addEventListener('touchmove', self.prev, { passive: false });
     const wrapper = document.getElementById('wrapper');
-    self.iscroll = new Iscroll('#wrapper', {
-      snap: 'li'
-    });
+    if (!self.iscroll) {
+      self.iscroll = new Iscroll('#wrapper', {
+        snap: 'li'
+      });
+    }
+
     const wrapper1 = document.getElementById('wrapper1');
-    self.iscroll1 = new Iscroll('#wrapper1', {
-      snap: 'li'
-    });
+    if (!self.iscroll1) {
+      self.iscroll1 = new Iscroll('#wrapper1', {
+        snap: 'li'
+      });
+    }
+
     const wrapper2 = document.getElementById('wrapper2');
-    self.iscroll2 = new Iscroll('#wrapper2', {
-      snap: 'li'
-    });
+    if (!self.iscroll2) {
+      self.iscroll2 = new Iscroll('#wrapper2', {
+        snap: 'li'
+      });
+    }
+
     const width = self.$refs.Width.offsetWidth * 0.1;
     // 根据calendarNum下标确定iscroll的初始位置
-    if (e) {
-      if (e === 1) {
-        self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 500);
-        self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
-        console.log(1);
-      } else if (e === 2) {
-        self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
-        console.log(2);
-      }
-    } else {
-      self.iscroll.scrollTo(0, -(self.calendarNum * width), 500);
-      self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 500);
-      self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
-      console.log(3);
-    }
+    // if (e) {
+    //   if (e === 1) {
+    //     self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 500);
+    //     self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
+    //     console.log(1);
+    //   } else if (e === 2) {
+    //     self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
+    //     console.log(2);
+    //   }
+    // } else {
+    self.iscroll.scrollTo(0, -(self.calendarNum * width), 500);
+    self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 500);
+    self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
+    //   console.log(3);
+    // }
 
     // 表一停止后更新下标
     self.iscroll.on('scrollEnd', function() {
@@ -354,34 +439,79 @@ export default class Home extends Vue {
   }
 
   onDropDownBox(e: string) {
+    const self = this;
     if (this.isShowDrop === e) {
       this.isShowDrop = '';
     } else {
-      this.isShowDrop = e;
+      setTimeout(() => {
+        self.isShowDrop = e;
+      }, 200);
     }
   }
 
-  dropBlur() {
+  dropBlur(e: string) {
     const self = this;
     setTimeout(() => {
       self.isShowDrop = '';
-    }, 300);
+    }, 100);
   }
 
   assignment(e: string) {
-    if (this.msg1.indexOf(e) === -1) {
+    const self = this;
+    if (self.msg1.indexOf(e) > -1) {
       setTimeout(() => {
-        this.userInfo.smokeNum = e;
+        self.userInfo.smokingPrice = e;
+        self.isShowDrop = '';
       }, 300);
-    } else {
+    } else if (self.msg2.indexOf(e) > -1) {
       setTimeout(() => {
-        this.userInfo.smokePrice = e;
+        self.userInfo.smokingVolume = e;
+        self.isShowDrop = '';
+      }, 300);
+    } else if (self.msg3.indexOf(e) > -1) {
+      setTimeout(() => {
+        self.userInfo.gender = e;
+        self.isShowDrop = '';
       }, 300);
     }
   }
 
   sendUserInfo() {
-    console.log(this.userInfo);
+    const self = this;
+    const mapKeys = [
+      '用户编号',
+      '销区经理编号',
+      '姓名',
+      '手机号码',
+      '性别',
+      '年龄',
+      '职业',
+      '抽烟价位',
+      '一个月抽烟量',
+      '省份',
+      '城市',
+      '区域',
+      '详细地址'
+    ];
+    let a = Object.values(self.userInfo);
+    for (let key in a) {
+      if (a[key] === '' || a[key] === undefined || a[key] === null) {
+        self.$layer.msg(mapKeys[key] + '不能为空');
+        return;
+      }
+    }
+    let data = JSON.parse(JSON.stringify(this.userInfo));
+    data.gender = this.userInfo.gender === '男' ? '1' : '2';
+    data.smokingPrice = this.msg1.indexOf(this.userInfo.smokingPrice) - -1;
+    data.smokingVolume = this.msg2.indexOf(this.userInfo.smokingVolume) - -1;
+    console.log(data);
+    api.edit(data).then(res => {
+      if (res.data.code === 200) {
+        console.log(res.data.data);
+      } else {
+        self.$layer.msg(res.data.msg);
+      }
+    });
   }
 }
 </script>
@@ -456,6 +586,9 @@ export default class Home extends Vue {
   overflow-y: scroll;
   .triangleParent {
     position: relative;
+    .inputBox {
+      height: 10vw;
+    }
   }
   .topTriangle {
     width: 0;
@@ -518,7 +651,7 @@ export default class Home extends Vue {
       word-break: break-all;
       border: solid 1px rgb(234, 198, 153);
       font-size: 4vw;
-      text-indent: 2vw;
+      padding: 0 2vw;
     }
     label {
       font-size: 4.5vw;

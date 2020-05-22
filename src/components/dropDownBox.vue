@@ -49,9 +49,6 @@ li::after {
   margin: auto;
   left: 5%;
 }
-li:last-of-type::after {
-  height: 0;
-}
 li:hover {
   background-color: #f8d2a3;
 }
