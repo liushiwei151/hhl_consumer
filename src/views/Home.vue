@@ -1,9 +1,9 @@
 <template>
   <div class="home" ref="Width">
     <!-- 再次进入时页面 -->
-    <showImg imgName='passing' v-if='userInformation&&userInformation.status=== 0'></showImg>
-    <showImg imgName='pass' v-if='userInformation&&userInformation.status=== 1'></showImg>
-    <showImg imgName='noPass' v-if='userInformation&&userInformation.status=== -1' @result="resultWord"></showImg>
+    <showImg imgName="passing" v-if="userInformation && userInformation.status === 0"></showImg>
+    <showImg imgName="pass" v-if="userInformation && userInformation.status === 1"></showImg>
+    <showImg imgName="noPass" v-if="userInformation && userInformation.status === -1" @result="resultWord"></showImg>
     <!-- 默认页面 -->
     <div class="box" :style="{ height: height + 'px', paddingTop: height * 0.15 + 'px' }">
       <ul>
@@ -46,16 +46,16 @@
           </div>
         </li>
         <li :style="{ marginTop: height * 0.025 + 'px' }">
-          <label>收获地址:</label>
-          <div class="triangleParent" @click="getCity()">
+          <label>收货地址:</label>
+          <div class="triangleParent" @click="getCity(9)">
             <input type="text" placeholder="省:" readonly="true" v-model="userInfo.province" />
             <i :class="[isCalendarShow ? 'topTriangle' : 'bottomTriangle']"></i>
           </div>
-          <div class="triangleParent" @click="getCity()">
+          <div class="triangleParent" @click="getCity(9)">
             <input type="text" placeholder="市:" readonly="true" v-model="userInfo.city" />
             <i :class="[isCalendarShow ? 'topTriangle' : 'bottomTriangle']"></i>
           </div>
-          <div class="triangleParent" @click="getCity()">
+          <div class="triangleParent" @click="getCity(9)">
             <input type="text" placeholder="区:" readonly="true" v-model="userInfo.area" />
             <i :class="[isCalendarShow ? 'topTriangle' : 'bottomTriangle']"></i>
           </div>
@@ -106,7 +106,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
+import { Component, Vue, Watch } from 'vue-property-decorator';
 import dropDownBox from '../components/dropDownBox.vue';
 import showImg from '../components/showImg.vue';
 import Iscroll from 'iscroll/build/iscroll';
@@ -237,6 +237,9 @@ export default class Home extends Vue {
       if (res.data.code === 200) {
         localStorage.setItem('token', JSON.stringify(res.data.data.token));
         self.userInformation = res.data.data.consumerUser;
+        if (self.userInformation !== null) {
+          self.userInfo = self.userInformation;
+        }
       } else {
         self.$layer.msg(res.data.msg);
       }
@@ -247,14 +250,13 @@ export default class Home extends Vue {
   getCity(e: number | string) {
     let b, c, x, y, z;
     const self = this;
-    if (!e) {
+    if (e === 9) {
       this.linshi = {
         province: this.userInfo.province,
         city: this.userInfo.city,
         area: this.userInfo.area
       };
     }
-
     const a = Object.keys(city).map(res => {
       return res;
     });
@@ -295,23 +297,51 @@ export default class Home extends Vue {
       city: b,
       area: c
     };
-    if (!e) {
+    if (e === 9) {
       this.showCalendar(e);
     }
     setTimeout(() => {
-      self.xb(x, y, z);
-    });
+      self.xb(x, y, z, e);
+    }, 0);
   }
 
   // 确定省市区下标
-  xb(e: number, f: number, g: number) {
+  xb(e: number, f: number, g: number, q: number) {
     const width = this.$refs.Width.offsetWidth * 0.1;
+    const self = this;
     this.calendarNum = e;
     this.calendarNum1 = f;
     this.calendarNum2 = g;
-    this.iscroll.scrollTo(0, -(this.calendarNum * width), 500);
-    this.iscroll1.scrollTo(0, -(this.calendarNum1 * width), 500);
-    this.iscroll2.scrollTo(0, -(this.calendarNum2 * width), 500);
+    if (q === 1) {
+      setTimeout(() => {
+        self.iscroll1.destroy();
+        self.iscroll1 = new Iscroll('#wrapper1', {
+          snap: 'li'
+        });
+        self.iscroll1.on('scrollEnd', function() {
+          self.calendarNum1 = Math.round(-this.y / width);
+          self.linshi.city = self.cityData.city[self.calendarNum1];
+            self.linshi.area = '';
+          self.getCity(2);
+        });
+        self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 300);
+      }, 200);
+    } else if (q === 2) {
+      setTimeout(() => {
+        self.iscroll2.destroy();
+        self.iscroll2 = new Iscroll('#wrapper2', {
+          snap: 'li'
+        });
+        self.iscroll2.on('scrollEnd', function() {
+          self.calendarNum2 = Math.round(-this.y / width);
+          self.linshi.area = self.cityData.area[self.calendarNum2];
+          self.getCity(3);
+        });
+        self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 300);
+      }, 100);
+    } else if (q === 9) {
+      self.iscroll.scrollTo(0, -(self.calendarNum * width), 300);
+    }
   }
 
   // 销毁并关闭日历
@@ -319,6 +349,9 @@ export default class Home extends Vue {
     const self = this;
     document.removeEventListener('touchmove', self.prev, { passive: false });
     this.isCalendarShow = false;
+    this.calendarNum = 0;
+    this.calendarNum1 = 0;
+    this.calendarNum2 = 0;
     this.iscroll.destroy();
     this.iscroll1.destroy();
     this.iscroll2.destroy();
@@ -341,11 +374,11 @@ export default class Home extends Vue {
   }
 
   // 显示日历
-  showCalendar() {
+  showCalendar(e) {
     const self = this;
     this.isCalendarShow = true;
     setTimeout(() => {
-      self.initCalendar();
+      self.initCalendar(e);
     }, 0);
   }
 
@@ -354,7 +387,7 @@ export default class Home extends Vue {
   }
 
   //重新开始填写
-  resultWord(){
+  resultWord() {
     this.userInfo = {
       memberNo: this.initData[1],
       salesMemberNo: '',
@@ -374,25 +407,22 @@ export default class Home extends Vue {
   }
 
   // 初始化日历
-  initCalendar() {
+  initCalendar(e) {
     const self = this;
     // 阻止浏览器的默认行为
     document.addEventListener('touchmove', self.prev, { passive: false });
-    const wrapper = document.getElementById('wrapper');
     if (!self.iscroll) {
       self.iscroll = new Iscroll('#wrapper', {
         snap: 'li'
       });
     }
 
-    const wrapper1 = document.getElementById('wrapper1');
     if (!self.iscroll1) {
       self.iscroll1 = new Iscroll('#wrapper1', {
         snap: 'li'
       });
     }
 
-    const wrapper2 = document.getElementById('wrapper2');
     if (!self.iscroll2) {
       self.iscroll2 = new Iscroll('#wrapper2', {
         snap: 'li'
@@ -400,35 +430,21 @@ export default class Home extends Vue {
     }
 
     const width = self.$refs.Width.offsetWidth * 0.1;
-    // 根据calendarNum下标确定iscroll的初始位置
-    // if (e) {
-    //   if (e === 1) {
-    //     self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 500);
-    //     self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
-    //     console.log(1);
-    //   } else if (e === 2) {
-    //     self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
-    //     console.log(2);
-    //   }
-    // } else {
     self.iscroll.scrollTo(0, -(self.calendarNum * width), 500);
     self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 500);
     self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 500);
-    //   console.log(3);
-    // }
-
     // 表一停止后更新下标
     self.iscroll.on('scrollEnd', function() {
       self.calendarNum = Math.round(-this.y / width);
       self.linshi.province = self.cityData.province[self.calendarNum];
-      self.linshi.city = '';
-      self.linshi.area = '';
+        self.linshi.city = '';
+        self.linshi.area = '';
       self.getCity(1);
     });
     self.iscroll1.on('scrollEnd', function() {
       self.calendarNum1 = Math.round(-this.y / width);
       self.linshi.city = self.cityData.city[self.calendarNum1];
-      self.linshi.area = '';
+        self.linshi.area = '';
       self.getCity(2);
     });
     self.iscroll2.on('scrollEnd', function() {
@@ -436,6 +452,7 @@ export default class Home extends Vue {
       self.linshi.area = self.cityData.area[self.calendarNum2];
       self.getCity(3);
     });
+    e = undefined;
   }
 
   onDropDownBox(e: string) {
@@ -504,7 +521,6 @@ export default class Home extends Vue {
     data.gender = this.userInfo.gender === '男' ? '1' : '2';
     data.smokingPrice = this.msg1.indexOf(this.userInfo.smokingPrice) - -1;
     data.smokingVolume = this.msg2.indexOf(this.userInfo.smokingVolume) - -1;
-    console.log(data);
     api.edit(data).then(res => {
       if (res.data.code === 200) {
         console.log(res.data.data);
@@ -546,6 +562,12 @@ export default class Home extends Vue {
       overflow: hidden;
       position: relative;
       height: 50vw;
+      li {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: block;
+      }
       .xian {
         height: 10vw;
         width: 100%;
