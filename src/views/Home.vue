@@ -1,5 +1,6 @@
 <template>
   <div class="home" ref="Width">
+    <div class="mask loadding" v-if="isshow"></div>
     <!-- 再次进入时页面 -->
     <showImg imgName="passing" v-if="userInformation && userInformation.status === 0"></showImg>
     <showImg imgName="pass" v-if="userInformation && userInformation.status === 1"></showImg>
@@ -106,12 +107,12 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Watch } from 'vue-property-decorator';
-import dropDownBox from '../components/dropDownBox.vue';
-import showImg from '../components/showImg.vue';
-import Iscroll from 'iscroll/build/iscroll';
-import city from '../components/city.data.js';
-import api from '../api.js';
+import { Component, Vue, Watch } from 'vue-property-decorator'
+import dropDownBox from '../components/dropDownBox.vue'
+import showImg from '../components/showImg.vue'
+import Iscroll from 'iscroll/build/iscroll'
+import city from '../components/city.data.js'
+import api from '../api.js'
 
 interface UserInfoConstraint {
   memberNo: string;
@@ -165,6 +166,10 @@ export default class Home extends Vue {
   initData: Array<any> = [];
   // 客户状态，为null说明第一次进入
   userInformation: any = null;
+  // wait
+  isshow = false;
+  // 是否是重新填写
+  isRefAdd = false;
   // 临时存储的省市区值
   linshi: Save = {
     province: '',
@@ -201,8 +206,8 @@ export default class Home extends Vue {
 
   created(): void {
     this.height = document.documentElement.clientHeight;
-    this.slice('http://qrhhl.yunyutian.cn/consumer/index.html?openid=oXslc0zEvV5RwspCzgWcQMmL-_yA&customerId=0000003#/');
-    // this.slice(location.href);//todo
+    // this.slice('http://qrhhl.yunyutian.cn/consumer/index.html?openid=oXslc0zEvV5RwspCzgWcQMmL-_yA&customerId=0000003#/');
+    this.slice(location.href);//todo
   }
 
   mounted(): void {
@@ -217,7 +222,7 @@ export default class Home extends Vue {
     };
   }
 
-  //截取url
+  // 截取url
   slice(url) {
     for (let i = 0; i < url.slice(44, -2).split('&').length; i++) {
       this.initData.push(
@@ -231,9 +236,16 @@ export default class Home extends Vue {
     this.getConsumer(this.initData[1]);
   }
 
+  // wait
+  isloadingshow(e) {
+    this.isshow = e;
+  }
+
   getConsumer(e) {
     const self = this;
+    self.isloadingshow(true);
     api.consumer(e).then(res => {
+      self.isloadingshow(false);
       if (res.data.code === 200) {
         localStorage.setItem('token', JSON.stringify(res.data.data.token));
         self.userInformation = res.data.data.consumerUser;
@@ -321,7 +333,7 @@ export default class Home extends Vue {
         self.iscroll1.on('scrollEnd', function() {
           self.calendarNum1 = Math.round(-this.y / width);
           self.linshi.city = self.cityData.city[self.calendarNum1];
-            self.linshi.area = '';
+          self.linshi.area = '';
           self.getCity(2);
         });
         self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 300);
@@ -374,7 +386,7 @@ export default class Home extends Vue {
   }
 
   // 显示日历
-  showCalendar(e) {
+  showCalendar(e:number) {
     const self = this;
     this.isCalendarShow = true;
     setTimeout(() => {
@@ -403,11 +415,12 @@ export default class Home extends Vue {
       area: '',
       street: ''
     };
+    this.isRefAdd = true;
     this.userInformation.status = '';
   }
 
   // 初始化日历
-  initCalendar(e) {
+  initCalendar(e: number) {
     const self = this;
     // 阻止浏览器的默认行为
     document.addEventListener('touchmove', self.prev, { passive: false });
@@ -437,14 +450,14 @@ export default class Home extends Vue {
     self.iscroll.on('scrollEnd', function() {
       self.calendarNum = Math.round(-this.y / width);
       self.linshi.province = self.cityData.province[self.calendarNum];
-        self.linshi.city = '';
-        self.linshi.area = '';
+      self.linshi.city = '';
+      self.linshi.area = '';
       self.getCity(1);
     });
     self.iscroll1.on('scrollEnd', function() {
       self.calendarNum1 = Math.round(-this.y / width);
       self.linshi.city = self.cityData.city[self.calendarNum1];
-        self.linshi.area = '';
+      self.linshi.area = '';
       self.getCity(2);
     });
     self.iscroll2.on('scrollEnd', function() {
@@ -510,20 +523,27 @@ export default class Home extends Vue {
       '区域',
       '详细地址'
     ];
-    let a = Object.values(self.userInfo);
-    for (let key in a) {
+    const a = Object.values(self.userInfo);
+    for (const key in a) {
       if (a[key] === '' || a[key] === undefined || a[key] === null) {
         self.$layer.msg(mapKeys[key] + '不能为空');
         return;
       }
     }
-    let data = JSON.parse(JSON.stringify(this.userInfo));
+    const data = JSON.parse(JSON.stringify(this.userInfo));
     data.gender = this.userInfo.gender === '男' ? '1' : '2';
     data.smokingPrice = this.msg1.indexOf(this.userInfo.smokingPrice) - -1;
     data.smokingVolume = this.msg2.indexOf(this.userInfo.smokingVolume) - -1;
+    if (self.userInformation && self.userInformation.consumerUserId) {
+      data.consumerUserId = self.userInformation.consumerUserId;
+    }
+    self.isloadingshow(true);
     api.edit(data).then(res => {
       if (res.data.code === 200) {
-        console.log(res.data.data);
+        self.isloadingshow(false);
+        self.userInformation = {
+          status: 0
+        };
       } else {
         self.$layer.msg(res.data.msg);
       }
@@ -532,6 +552,24 @@ export default class Home extends Vue {
 }
 </script>
 <style scoped lang="less">
+.loadding {
+  background: url(../assets/loading.gif) no-repeat;
+  background-size: 10vw 10vw;
+  color: #fff;
+}
+.mask {
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  background-position: center center;
+  z-index: 99;
+  filter: progid:DXImageTransform.Microsoft.Alpha(opacity=70);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 //日历样式
 .calendarMask {
   background-color: rgba(0, 0, 0, 0.6);
@@ -673,7 +711,8 @@ export default class Home extends Vue {
       word-break: break-all;
       border: solid 1px rgb(234, 198, 153);
       font-size: 4vw;
-      padding: 0 2vw;
+      padding: 2vw;
+      box-sizing: border-box;
     }
     label {
       font-size: 4.5vw;

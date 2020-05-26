@@ -3,11 +3,18 @@
 </template>
 
 <script>
+  import api from './api.js'
 export default {
   name: 'app',
+  data() {
+    return {
+      isshow: false,
+      initData:[]
+    };
+  },
   created() {
     // 禁止看到链接
-    // this.slice(location.href); //todo
+    this.slice(location.href); 
     this.prohibitFontSize();
   },
   methods: {
@@ -17,8 +24,7 @@ export default {
         this.initData.push(
           url
             .slice(44, -2)
-            .split('&')
-            [i].split('=')[1]
+            .split('&')[i].split('=')[1]
         );
       }
       this.getJsSign();
@@ -28,7 +34,7 @@ export default {
       const self = this;
       const url = location.href.split('#')[0];
       api.getJsSign(url).then(res => {
-        if (res.data.code == 200) {
+        if (res.data.code === 200) {
           self.wx.config({
             debug: false,
             appId: res.data.data.appid,
@@ -41,13 +47,13 @@ export default {
             self.wx.hideAllNonBaseMenuItem();
           });
         } else {
-          self.$layer.msg(res.data.msg)
+          self.$layer.msg(res.data.msg);
         }
       });
     },
     // wx禁止调整字体大小
     prohibitFontSize() {
-      if (typeof WeixinJSBridge == 'object' && typeof WeixinJSBridge.invoke == 'function') {
+      if (typeof WeixinJSBridge === 'object' && typeof WeixinJSBridge.invoke === 'function') {
         handleFontSize();
       } else {
         if (document.addEventListener) {

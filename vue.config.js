@@ -1,8 +1,15 @@
 // vue.config.js
+const Version = process.env.npm_package_version;
 module.exports = {
   publicPath: './',
   // 打包路径
   outputDir: 'dist',
+  configureWebpack: {
+    output: { // 输出重构  打包编译后的 文件名称  【模块名称.版本号.js】
+      filename: `js/[name].${Version}.js`,
+      chunkFilename: `js/[name].${Version}.js`
+    }
+  },
   // 静态资源路径
   assetsDir: 'assets',
   // 设置是否在开发环境下每次保存代码时都启用eslint
