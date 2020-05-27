@@ -39,7 +39,7 @@
           </div>
           <div class="triangleParent">
             <div class="inputBox" @click="onDropDownBox('weight')">
-              <input type="text" placeholder="一个月抽烟量:" readonly="true" @blur="dropBlur('weight')" v-model="userInfo.smokingVolume" />
+              <input type="text" placeholder="抽烟量:" readonly="true" @blur="dropBlur('weight')" v-model="userInfo.smokingVolume" />
               <i :class="[isShowDrop === 'weight' ? 'topTriangle' : 'bottomTriangle']"></i>
             </div>
 
@@ -207,7 +207,7 @@ export default class Home extends Vue {
   created(): void {
     this.height = document.documentElement.clientHeight;
     // this.slice('http://qrhhl.yunyutian.cn/consumer/index.html?openid=oXslc0zEvV5RwspCzgWcQMmL-_yA&customerId=0000003#/');
-    this.slice(location.href);//todo
+    this.slice(location.href);
   }
 
   mounted(): void {
@@ -337,7 +337,7 @@ export default class Home extends Vue {
           self.getCity(2);
         });
         self.iscroll1.scrollTo(0, -(self.calendarNum1 * width), 300);
-      }, 200);
+      }, 0);
     } else if (q === 2) {
       setTimeout(() => {
         self.iscroll2.destroy();
@@ -350,7 +350,7 @@ export default class Home extends Vue {
           self.getCity(3);
         });
         self.iscroll2.scrollTo(0, -(self.calendarNum2 * width), 300);
-      }, 100);
+      }, 0);
     } else if (q === 9) {
       self.iscroll.scrollTo(0, -(self.calendarNum * width), 300);
     }
@@ -423,7 +423,7 @@ export default class Home extends Vue {
   initCalendar(e: number) {
     const self = this;
     // 阻止浏览器的默认行为
-    document.addEventListener('touchmove', self.prev, { passive: false });
+    document.addEventListener('touchmove', self.prev, { passive: false,capture: false});
     if (!self.iscroll) {
       self.iscroll = new Iscroll('#wrapper', {
         snap: 'li'
