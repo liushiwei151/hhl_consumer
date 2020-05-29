@@ -2,7 +2,7 @@
   <div class="home" ref="Width">
     <div class="mask loadding" v-if="isshow"></div>
     <!-- 再次进入时页面 -->
-    <showImg imgName="passing" v-if="userInformation && userInformation.status === 0"></showImg>
+    <showImg imgName="passing" v-if="userInformation && userInformation.status === 0" @result="resultWord"></showImg>
     <showImg imgName="pass" v-if="userInformation && userInformation.status === 1"></showImg>
     <showImg imgName="noPass" v-if="userInformation && userInformation.status === -1" @result="resultWord"></showImg>
     <!-- 默认页面 -->

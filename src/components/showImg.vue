@@ -1,7 +1,7 @@
 <template>
   <div class="ShowImg">
     <div class='img' :style="{backgroundImage:'url('+imgUrl+')'}">
-      <button class='button' @click="resultButton" v-if="imgName=='noPass'"></button>
+      <button class='button' @click="resultButton" v-if="imgName=='noPass'||imgName=='passing'"></button>
     </div>
   </div>
 </template>
